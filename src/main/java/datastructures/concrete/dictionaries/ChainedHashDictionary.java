@@ -2,24 +2,26 @@ package datastructures.concrete.dictionaries;
 
 import datastructures.concrete.KVPair;
 import datastructures.interfaces.IDictionary;
-import misc.exceptions.NotYetImplementedException;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
- * TODO: Replace this class with your ChainedHashDictionary implementation from the second
- * project.
+ * @see IDictionary and the assignment page for more details on what each method should do
  */
 public class ChainedHashDictionary<K, V> implements IDictionary<K, V> {
-    // You MUST use this field to store the contents of your dictionary.
     // You may not change or rename this field: we will be inspecting
     // it using our private tests.
     private IDictionary<K, V>[] chains;
+    private static final int INIT_CAPACITY = 10;
+    private int currSize;
 
     // You're encouraged to add extra fields (and helper methods) though!
 
     public ChainedHashDictionary() {
-        throw new NotYetImplementedException();
+        chains = makeArrayOfChains(INIT_CAPACITY);
+        currSize = 0;
+        fillArrayOfChains(chains);
     }
 
     /**
@@ -29,41 +31,78 @@ public class ChainedHashDictionary<K, V> implements IDictionary<K, V> {
      * Note that each element in the array will initially be null.
      */
     @SuppressWarnings("unchecked")
-    private IDictionary<K, V>[] makeArrayOfChains(int arraySize) {
-        // Note: You do not need to modify this method.
-        // See ArrayDictionary's makeArrayOfPairs(...) method for
-        // more background on why we need this method.
-        return (IDictionary<K, V>[]) new IDictionary[arraySize];
+    private IDictionary<K, V>[] makeArrayOfChains(int size) {
+        return (IDictionary<K, V>[]) new IDictionary[size];
     }
 
     @Override
     public V get(K key) {
-        throw new NotYetImplementedException();
-    }
-
-    @Override
-    public V getOrDefault(K key, V defaultValue) {
-        throw new NotYetImplementedException();
+        int keyIndex = 0;
+        if (key != null) {
+            keyIndex = Math.abs(key.hashCode() % chains.length);
+        }
+        return chains[keyIndex].get(key);
     }
 
     @Override
     public void put(K key, V value) {
-        throw new NotYetImplementedException();
+        int loadFactor = currSize / chains.length;
+        if (loadFactor > 1) { // if load factor, n/c, is larger than 1, then resize the array
+            increaseCapacity();
+        }
+        if (!containsKey(key)) { // if the key is not already contained, increase size
+            currSize++;
+        }
+        int hashCode = 0;
+        if (key != null) {
+            hashCode = Math.abs(key.hashCode() % chains.length);
+        }
+        chains[hashCode].put(key, value);
     }
 
     @Override
     public V remove(K key) {
-        throw new NotYetImplementedException();
+        int keyIndex = 0;
+        if (key != null) {
+            keyIndex = Math.abs(key.hashCode() % chains.length);
+        }
+        currSize--;
+        return chains[keyIndex].remove(key);
     }
 
     @Override
     public boolean containsKey(K key) {
-        throw new NotYetImplementedException();
+        int hashCode = 0;
+        if (key != null) {
+            hashCode = Math.abs(key.hashCode() % chains.length);
+        }
+        return chains[hashCode].containsKey(key);
     }
 
     @Override
     public int size() {
-        throw new NotYetImplementedException();
+        return currSize;
+    }
+
+    private void increaseCapacity() {
+        IDictionary<K, V>[] replace = makeArrayOfChains(2 * chains.length);
+        fillArrayOfChains(replace);
+        for (int i = 0; i < chains.length; i++) {
+            for (KVPair<K, V> next : chains[i]) {
+                int hashCode = 0;
+                if (next.getKey() != null) {
+                    hashCode = Math.abs(next.getKey().hashCode() % replace.length);
+                }
+                replace[hashCode].put(next.getKey(), next.getValue());
+            }
+        }
+        chains = replace;
+    }
+
+    private void fillArrayOfChains(IDictionary<K, V>[] dictionary) {
+        for (int i = 0; i < dictionary.length; i++) {
+            dictionary[i] = new ArrayDictionary<K, V>();
+        }
     }
 
     @Override
@@ -72,7 +111,7 @@ public class ChainedHashDictionary<K, V> implements IDictionary<K, V> {
         return new ChainedIterator<>(this.chains);
     }
 
-    /**
+    /*
      * Hints:
      *
      * 1. You should add extra fields to keep track of your iteration
@@ -116,20 +155,38 @@ public class ChainedHashDictionary<K, V> implements IDictionary<K, V> {
      */
     private static class ChainedIterator<K, V> implements Iterator<KVPair<K, V>> {
         private IDictionary<K, V>[] chains;
+        private int currIndex;
+        private Iterator<KVPair<K, V>> dictIterator;
 
         public ChainedIterator(IDictionary<K, V>[] chains) {
             this.chains = chains;
-            throw new NotYetImplementedException();
+            currIndex = 0;
+            dictIterator = chains[0].iterator();
         }
 
         @Override
         public boolean hasNext() {
-            throw new NotYetImplementedException();
+            return dictIterator.hasNext() || hasNextIterator();
         }
 
         @Override
         public KVPair<K, V> next() {
-            throw new NotYetImplementedException();
+            if (this.hasNext()) {
+                return dictIterator.next();
+            }
+            throw new NoSuchElementException();
+        }
+
+        private boolean hasNextIterator() {
+            for (int i = currIndex + 1; i < chains.length; i++) {
+                Iterator<KVPair<K, V>> iter = chains[i].iterator();
+                if (iter.hasNext()) {
+                    currIndex = i;
+                    dictIterator = chains[i].iterator();
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

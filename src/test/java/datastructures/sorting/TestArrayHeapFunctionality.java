@@ -22,4 +22,15 @@ public class TestArrayHeapFunctionality extends BaseTest {
         assertEquals(1, heap.size());
         assertTrue(!heap.isEmpty());
     }
+
+    @Test(timeout=SECOND)
+    public void testDuplicateElements() {
+        IPriorityQueue<Integer> heap = this.makeInstance();
+        Integer val = 4;
+        heap.insert(val);
+        val = 5;
+        heap.insert(val);
+        assertTrue(heap.removeMin() == 4);
+        assertTrue(heap.removeMin() == 4);
+    }
 }

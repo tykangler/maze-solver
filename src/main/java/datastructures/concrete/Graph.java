@@ -1,10 +1,13 @@
 package datastructures.concrete;
 
+import datastructures.concrete.dictionaries.ChainedHashDictionary;
+import datastructures.interfaces.IDictionary;
+import datastructures.interfaces.IDisjointSet;
 import datastructures.interfaces.IEdge;
 import datastructures.interfaces.IList;
+import datastructures.interfaces.IPriorityQueue;
 import datastructures.interfaces.ISet;
 import misc.exceptions.NoPathExistsException;
-import misc.exceptions.NotYetImplementedException;
 
 /**
  * Represents an undirected, weighted graph, possibly containing self-loops, parallel edges,
@@ -15,6 +18,10 @@ import misc.exceptions.NotYetImplementedException;
  * remainder of the project.
  */
 public class Graph<V, E extends IEdge<V> & Comparable<E>> {
+
+    private IDictionary<V, ISet<E>> graph;
+    private IDictionary<V, Vertex> vertexMappings;
+    private int numEdges;
     // NOTE 1:
     //
     // Feel free to add as many fields, private helper methods, and private
@@ -61,7 +68,24 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * @throws IllegalArgumentException if vertices or edges are null or contain null
      */
     public Graph(IList<V> vertices, IList<E> edges) {
-        // TODO: Your code here
+        graph = new ChainedHashDictionary<V, ISet<E>>();
+        vertexMappings = new ChainedHashDictionary<V, Vertex>();
+        for (V vertex : vertices) {
+            if (vertex == null) {
+                throw new IllegalArgumentException();
+            }
+            graph.put(vertex, new ChainedHashSet<E>());
+            vertexMappings.put(vertex, new Vertex(vertex));
+        }
+        for (E edge : edges) {
+            if (edge == null || edge.getWeight() < 0 || !graph.containsKey(edge.getVertex1()) || 
+            !graph.containsKey(edge.getVertex2())) {
+                    throw new IllegalArgumentException();
+            }
+            graph.get(edge.getVertex1()).add(edge);
+            graph.get(edge.getVertex2()).add(edge);
+        }
+        numEdges += edges.size();
     }
 
     /**
@@ -75,7 +99,6 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * @throws IllegalArgumentException if vertices or edges are null or contain null
      */
     public Graph(ISet<V> vertices, ISet<E> edges) {
-        // You do not need to modify this method.
         this(setToList(vertices), setToList(edges));
     }
 
@@ -96,14 +119,14 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * Returns the number of vertices contained within this graph.
      */
     public int numVertices() {
-        throw new NotYetImplementedException();
+        return graph.size();
     }
 
     /**
      * Returns the number of edges contained within this graph.
      */
     public int numEdges() {
-        throw new NotYetImplementedException();
+        return numEdges;
     }
 
     /**
@@ -115,7 +138,23 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * Precondition: the graph does not contain any unconnected components.
      */
     public ISet<E> findMinimumSpanningTree() {
-        throw new NotYetImplementedException();
+        IDisjointSet<V> components = new ArrayDisjointSet<V>();
+        IPriorityQueue<E> sortedEdges = new ArrayHeap<E>();
+        ISet<E> mstEdges = new ChainedHashSet<E>();
+        for (KVPair<V, ISet<E>> vertices : graph) {
+            components.makeSet(vertices.getKey());
+            for (E edge : vertices.getValue()) {
+                sortedEdges.insert(edge);
+            }
+        }
+        while (!sortedEdges.isEmpty()) {
+            E edge = sortedEdges.removeMin();
+            if (components.findSet(edge.getVertex1()) != components.findSet(edge.getVertex2())) {
+                mstEdges.add(edge);
+                components.union(edge.getVertex1(), edge.getVertex2());
+            }
+        }
+        return mstEdges;
     }
 
     /**
@@ -132,6 +171,51 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * @throws IllegalArgumentException if start or end is null
      */
     public IList<E> findShortestPathBetween(V start, V end) {
-        throw new NotYetImplementedException();
+        if (start == null || end == null) {
+            throw new IllegalArgumentException();
+        }
+        IPriorityQueue<Vertex> minPQ = new ArrayHeap<Vertex>();
+        vertexMappings.get(start).dist = 0.0;
+        minPQ.insert(vertexMappings.get(start));
+        return dijkstra(minPQ, end);
+    }
+
+    private IList<E> dijkstra(IPriorityQueue<Vertex> minPQ, V end) {
+        while (!minPQ.isEmpty()) {
+            Vertex currVertex = minPQ.removeMin();
+            ISet<E> edges = graph.get(currVertex.data);
+            for (E edge : edges) {
+                double newDist = currVertex.dist + edge.getWeight();
+                Vertex otherVertex = vertexMappings.get(edge.getOtherVertex(currVertex.data));
+                if (newDist < otherVertex.dist) {
+                    otherVertex.dist = newDist;
+                    minPQ.insert(otherVertex);
+                    otherVertex.predecessors.add(edge);
+                }
+            }
+        }
+        return vertexMappings.get(end).predecessors;
+    }
+
+
+
+    private class Vertex implements Comparable<Vertex> {
+        V data;
+        IList<E> predecessors;
+        double dist;
+        
+        Vertex(V data) {
+            this(data, Double.POSITIVE_INFINITY);
+        }
+
+        Vertex(V data, double dist) {
+            this.data = data;
+            predecessors = new DoubleLinkedList<E>();
+            this.dist = dist;
+        }
+
+        public int compareTo(Vertex other) {
+           return Double.compare(this.dist, other.dist);
+        }
     }
 }
