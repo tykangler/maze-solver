@@ -13,7 +13,6 @@ public class SanityCheck {
         System.out.println(test.apply("Java 8 or above is correctly installed!"));
 
         // The following four lines should run, but checkstyle should complain about style errors in both lines.
-        // TODO: checkstyle will flag all todos as errors
         ArrayList<String> a = new ArrayList<>();
         a.add("test"); // Deliberately long line: ............................................................................................... end
         System.out.println( a.isEmpty());

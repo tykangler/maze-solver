@@ -22,42 +22,6 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
     private IDictionary<V, ISet<E>> graph;
     private IDictionary<V, VertexInfo> costInfo;
     private int numEdges;
-    // NOTE 1:
-    //
-    // Feel free to add as many fields, private helper methods, and private
-    // inner classes as you want.
-    //
-    // And of course, as always, you may also use any of the data structures
-    // and algorithms we've implemented so far.
-    //
-    // Note: If you plan on adding a new class, please be sure to make it a private
-    // static inner class contained within this file. Our testing infrastructure
-    // works by copying specific files from your project to ours, and if you
-    // add new files, they won't be copied and your code will not compile.
-    //
-    //
-    // NOTE 2:
-    //
-    // You may notice that the generic types of Graph are a little bit more
-    // complicated than usual.
-    //
-    // This class uses two generic parameters: V and E.
-    //
-    // - 'V' is the type of the vertices in the graph. The vertices can be
-    //   any type the client wants -- there are no restrictions.
-    //
-    // - 'E' is the type of the edges in the graph. We've constrained Graph
-    //   so that E *must* always be an instance of IEdge<V> AND Comparable<E>.
-    //
-    //   What this means is that if you have an object of type E, you can use
-    //   any of the methods from both the IEdge interface and from the Comparable
-    //   interface
-    //
-    // If you have any additional questions about generics, or run into issues while
-    // working with them, please ask ASAP either on Piazza or during office hours.
-    //
-    // Working with generics is really not the focus of this class, so if you
-    // get stuck, let us know we'll try and help you get unstuck as best as we can.
 
     /**
      * Constructs a new graph based on the given vertices and edges.
@@ -175,13 +139,24 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
             throw new IllegalArgumentException();
         }
         IPriorityQueue<VertexInfo> mpq = new ArrayHeap<VertexInfo>();
-        ISet<V> visited = new ChainedHashSet<V>();
-
         VertexInfo startInfo = costInfo.get(start);
-        mpq.insert(startInfo);
         startInfo.dist = 0.0;
+        mpq.insert(startInfo);
+        runDijkstra(mpq, end);
+        return constructPath(start, end);
+    }
+    
+    /**
+     * Runs Dijkstra's shortest-path algorithm on the graph with the given end node.
+     * The start node is already initialized in the priority queue with a dist value of 0.
+     * Fills in the predecessor and distance values of each node visited and stops once the
+     * end is reached. 
+     * 
+     * @throws NoPathExistsException if a path doesn't exist
+     */
+    private void runDijkstra(IPriorityQueue<VertexInfo> mpq, V end) {
+        ISet<V> visited = new ChainedHashSet<V>();
         VertexInfo curr = mpq.peekMin();
-
         while (!mpq.isEmpty() && !curr.data.equals(end)) {
             curr = mpq.removeMin();
             if (!visited.contains(curr.data) && !curr.data.equals(end)) {
@@ -200,7 +175,15 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
         if (!end.equals(curr.data)) {
             throw new NoPathExistsException();
         }
+    }
 
+    /**
+     * Constructs a path of edges given start and end nodes that have predecessor fields 
+     * filled in.
+     * 
+     * @return the path in list form
+     */
+    private IList<E> constructPath(V start, V end) {
         IList<E> path = new DoubleLinkedList<E>();
         VertexInfo currInfo = costInfo.get(end);
         while (!currInfo.data.equals(start)) {
@@ -211,10 +194,14 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
         for (KVPair<V, VertexInfo> cost : costInfo) {
             cost.getValue().reset();
         }
-
         return path;
     }
 
+    /**
+     * Used when finding the shortest path between two vertices in a graph
+     * Contains a given vertex's data, predecessor, and distance from source.
+     * Resets each time findShortestPathBetween() is called.
+     */
     private class VertexInfo implements Comparable<VertexInfo> {
         V data;
         E pre;

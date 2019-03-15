@@ -11,7 +11,6 @@ import static org.junit.Assert.assertTrue;
 public class TestArrayHeapAndSorterStress extends BaseTest {
     @Test(timeout=10*SECOND)
     public void testPlaceholder() {
-        // TODO: replace this placeholder with actual code
         assertTrue(true);
     }
 }
