@@ -1,0 +1,21 @@
+Tyler Kang
+CSE 373 Section AE
+hw7-beakedwhale
+Writeup
+
+1. Questions about the homework
+
+   1. My name is Tyler Kang. I worked on this alone.
+   2. I really really enjoyed this homework. This was one of the most
+      challenging, but rewarding assignment I've had to do. Having to 
+      modify Dijkstra's algorithm was exactly what I was expecting from this
+      class. And when I was finally able to solve the maze, I literally jumped 
+      out of my seat. When I saw how disjoint sets fit in with Kruskall's MST, 
+      I had a true "aha" moment. I loved how hands-on this assignment was. It 
+      felt like I did most of the work on this one. I also loved that I had more 
+      discretion in class design. Being able to think about different approaches 
+      from the ground-up was very fun.
+
+   3. One thing I would change however is the heavy use of generics. If we are only
+      solving a maze, it seems like it would make more sense to narrow our class 
+      definition into something maze-related. 
