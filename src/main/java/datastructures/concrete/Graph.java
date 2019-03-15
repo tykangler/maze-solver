@@ -20,7 +20,7 @@ import misc.exceptions.NoPathExistsException;
 public class Graph<V, E extends IEdge<V> & Comparable<E>> {
 
     private IDictionary<V, ISet<E>> graph;
-    private IDictionary<V, Vertex> vertexMappings;
+    private IDictionary<V, VertexInfo> costInfo;
     private int numEdges;
     // NOTE 1:
     //
@@ -69,13 +69,13 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      */
     public Graph(IList<V> vertices, IList<E> edges) {
         graph = new ChainedHashDictionary<V, ISet<E>>();
-        vertexMappings = new ChainedHashDictionary<V, Vertex>();
+        costInfo = new ChainedHashDictionary<V, VertexInfo>();
         for (V vertex : vertices) {
             if (vertex == null) {
                 throw new IllegalArgumentException();
             }
             graph.put(vertex, new ChainedHashSet<E>());
-            vertexMappings.put(vertex, new Vertex(vertex));
+            costInfo.put(vertex, new VertexInfo(vertex));
         }
         for (E edge : edges) {
             if (edge == null || edge.getWeight() < 0 || !graph.containsKey(edge.getVertex1()) || 
@@ -174,48 +174,70 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
         if (start == null || end == null) {
             throw new IllegalArgumentException();
         }
-        IPriorityQueue<Vertex> minPQ = new ArrayHeap<Vertex>();
-        vertexMappings.get(start).dist = 0.0;
-        minPQ.insert(vertexMappings.get(start));
-        return dijkstra(minPQ, end);
-    }
+        IPriorityQueue<VertexInfo> mpq = new ArrayHeap<VertexInfo>();
+        ISet<V> visited = new ChainedHashSet<V>();
 
-    private IList<E> dijkstra(IPriorityQueue<Vertex> minPQ, V end) {
-        while (!minPQ.isEmpty()) {
-            Vertex currVertex = minPQ.removeMin();
-            ISet<E> edges = graph.get(currVertex.data);
-            for (E edge : edges) {
-                double newDist = currVertex.dist + edge.getWeight();
-                Vertex otherVertex = vertexMappings.get(edge.getOtherVertex(currVertex.data));
-                if (newDist < otherVertex.dist) {
-                    otherVertex.dist = newDist;
-                    minPQ.insert(otherVertex);
-                    otherVertex.predecessors.add(edge);
+        VertexInfo startInfo = costInfo.get(start);
+        mpq.insert(startInfo);
+        startInfo.dist = 0.0;
+        VertexInfo curr = mpq.peekMin();
+
+        while (!mpq.isEmpty() && !curr.data.equals(end)) {
+            curr = mpq.removeMin();
+            if (!visited.contains(curr.data) && !curr.data.equals(end)) {
+                for (E edge : graph.get(curr.data)) {
+                    double newDist = curr.dist + edge.getWeight();
+                    VertexInfo otherVertex = costInfo.get(edge.getOtherVertex(curr.data)); 
+                    if (newDist < otherVertex.dist) {
+                        otherVertex.dist = newDist;
+                        otherVertex.pre = edge;
+                        mpq.insert(new VertexInfo(otherVertex.data, edge, newDist));
+                    }
                 }
+                visited.add(curr.data);
             }
         }
-        return vertexMappings.get(end).predecessors;
-    }
-
-
-
-    private class Vertex implements Comparable<Vertex> {
-        V data;
-        IList<E> predecessors;
-        double dist;
-        
-        Vertex(V data) {
-            this(data, Double.POSITIVE_INFINITY);
+        if (!end.equals(curr.data)) {
+            throw new NoPathExistsException();
         }
 
-        Vertex(V data, double dist) {
+        IList<E> path = new DoubleLinkedList<E>();
+        VertexInfo currInfo = costInfo.get(end);
+        while (!currInfo.data.equals(start)) {
+            path.insert(0, currInfo.pre);
+            V temp = currInfo.pre.getOtherVertex(currInfo.data);
+            currInfo = costInfo.get(temp);
+        }
+        for (KVPair<V, VertexInfo> cost : costInfo) {
+            cost.getValue().reset();
+        }
+
+        return path;
+    }
+
+    private class VertexInfo implements Comparable<VertexInfo> {
+        V data;
+        E pre;
+        double dist;
+
+        VertexInfo(V data) {
+            this(data, null, Double.POSITIVE_INFINITY);
+        }
+
+        VertexInfo(V data, E pre, double dist) {
             this.data = data;
-            predecessors = new DoubleLinkedList<E>();
+            this.pre = pre;
             this.dist = dist;
         }
 
-        public int compareTo(Vertex other) {
-           return Double.compare(this.dist, other.dist);
+        public void reset() {
+            pre = null;
+            dist = Double.POSITIVE_INFINITY;
+        }
+
+        public int compareTo(VertexInfo other) {
+            return Double.compare(this.dist, other.dist);
         }
     }
+
 }

@@ -277,7 +277,7 @@ public class TestGraph extends BaseTest {
         assertTrue(mst.contains(edge("d", "f", 6)));
     }
 
-    @Test(timeout=SECOND)
+    @Test(timeout=2400*SECOND)
     public void testFindingShortestPathSimple() {
         Graph<String, SimpleEdge<String>> graph = this.buildSimpleGraph();
 
