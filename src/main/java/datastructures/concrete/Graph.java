@@ -155,11 +155,10 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
      * @throws NoPathExistsException if a path doesn't exist
      */
     private void runDijkstra(IPriorityQueue<VertexInfo> mpq, V end) {
-        ISet<V> visited = new ChainedHashSet<V>();
         VertexInfo curr = mpq.peekMin();
         while (!mpq.isEmpty() && !curr.data.equals(end)) {
             curr = mpq.removeMin();
-            if (!visited.contains(curr.data) && !curr.data.equals(end)) {
+            if (!costInfo.get(curr.data).visited && !curr.data.equals(end)) {
                 for (E edge : graph.get(curr.data)) {
                     double newDist = curr.dist + edge.getWeight();
                     VertexInfo otherVertex = costInfo.get(edge.getOtherVertex(curr.data)); 
@@ -169,7 +168,7 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
                         mpq.insert(new VertexInfo(otherVertex.data, edge, newDist));
                     }
                 }
-                visited.add(curr.data);
+                costInfo.get(curr.data).visited = true;
             }
         }
         if (!end.equals(curr.data)) {
@@ -206,6 +205,7 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
         V data;
         E pre;
         double dist;
+        boolean visited;
 
         VertexInfo(V data) {
             this(data, null, Double.POSITIVE_INFINITY);
@@ -220,6 +220,7 @@ public class Graph<V, E extends IEdge<V> & Comparable<E>> {
         public void reset() {
             pre = null;
             dist = Double.POSITIVE_INFINITY;
+            visited = false;
         }
 
         public int compareTo(VertexInfo other) {
